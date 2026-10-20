@@ -45,20 +45,44 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Ensure MinGW linker
+        shell: pwsh
+        run: |
+          $mingw = "C:\msys64\mingw64\bin"
+          if (Test-Path "$mingw\x86_64-w64-mingw32-gcc.exe") {
+            $mingw | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            Write-Host "MinGW: $mingw"
+          } else {
+            choco install mingw --no-progress -y
+            "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          }
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: build/winmm
 
-      - name: Build winmm.dll
+      - name: Build winmm.dll (GNU target)
         working-directory: build/winmm
-        run: cargo build --release --locked
+        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+
+      - name: Verify produced DLL
+        shell: pwsh
+        run: |
+          $dll = "build/winmm/target/x86_64-pc-windows-gnu/release/winmm.dll"
+          if (-not (Test-Path $dll)) { throw "winmm.dll not built" }
+          $size = (Get-Item $dll).Length
+          Write-Host "winmm.dll = $([math]::Round($size/1KB,1)) KB"
+          # 导出表缺失时产物会明显偏小 (MSVC 误用 GNU 参数就会这样)
+          if ($size -lt 200KB) { throw "winmm.dll too small - export table likely missing" }
 
       - name: Assemble GUI resources
         shell: pwsh
         run: |
-          Copy-Item build\winmm\target\release\winmm.dll build\gui\ -Force
+          Copy-Item build\winmm\target\x86_64-pc-windows-gnu\release\winmm.dll build\gui\ -Force
           Copy-Item patches\*.js build\gui\ -Force
           Copy-Item patches\VERSION build\gui\ -Force
 
@@ -83,6 +107,25 @@ jobs:
           )
           & $csc $args
           if ($LASTEXITCODE -ne 0) { throw "csc failed: $LASTEXITCODE" }
+
+      - name: Verify GUI artifact
+        shell: pwsh
+        run: |
+          $exe = "build\gui\TyporaSetup.exe"
+          if (-not (Test-Path $exe)) { throw "TyporaSetup.exe not built" }
+          Add-Type -AssemblyName System.Reflection
+          $asm = [System.Reflection.Assembly]::LoadFile((Resolve-Path $exe))
+          $res = @{}
+          foreach ($n in $asm.GetManifestResourceNames()) {
+            $s = $asm.GetManifestResourceStream($n)
+            $res[$n] = $s.Length
+            Write-Host ("  {0,-24} {1,8:N1} KB" -f $n, ($s.Length/1KB))
+          }
+          foreach ($need in @('winmm.dll','virt-loader.js','registration.js','license-virtualize.js','VERSION')) {
+            if (-not $res.ContainsKey($need)) { throw "missing embedded resource: $need" }
+          }
+          if ($res['winmm.dll'] -lt 200KB) { throw "embedded winmm.dll too small ($([math]::Round($res['winmm.dll']/1KB,1)) KB) - export table likely missing" }
+          Write-Host "GUI artifact OK"
 
       - name: Locate Inno Setup
         id: iscc

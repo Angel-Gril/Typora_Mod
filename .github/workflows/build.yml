@@ -16,29 +16,44 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Ensure MinGW linker
+        shell: pwsh
+        run: |
+          $mingw = "C:\msys64\mingw64\bin"
+          if (Test-Path "$mingw\x86_64-w64-mingw32-gcc.exe") {
+            $mingw | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            Write-Host "MinGW: $mingw"
+          } else {
+            Write-Host "MSYS2 MinGW 未找到, 安装中…"
+            choco install mingw --no-progress -y
+            "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          }
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: build/winmm
 
-      - name: Build winmm.dll
+      - name: Build winmm.dll (GNU target)
         working-directory: build/winmm
-        run: cargo build --release --locked
+        run: cargo build --release --locked --target x86_64-pc-windows-gnu
 
       - name: Verify export count
         shell: pwsh
         run: |
-          $dll = "build/winmm/target/release/winmm.dll"
+          $dll = "build/winmm/target/x86_64-pc-windows-gnu/release/winmm.dll"
           if (-not (Test-Path $dll)) { throw "winmm.dll not built" }
           $size = (Get-Item $dll).Length
           Write-Host "winmm.dll = $([math]::Round($size/1KB,1)) KB"
-          if ($size -lt 100KB) { throw "winmm.dll too small, suspicious" }
+          if ($size -lt 200KB) { throw "winmm.dll too small - export table likely missing" }
 
       - uses: actions/upload-artifact@v4
         with:
           name: winmm-dll
-          path: build/winmm/target/release/winmm.dll
+          path: build/winmm/target/x86_64-pc-windows-gnu/release/winmm.dll
 
   gui:
     name: GUI (C# WinForms)
