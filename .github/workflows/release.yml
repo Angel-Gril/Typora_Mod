@@ -120,7 +120,8 @@ jobs:
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item build\gui\TyporaSetup.exe "out\TyporaSetup-$ver.exe" -Force
           Copy-Item "dist\TyporaVirt-Setup-$ver.exe" "out\TyporaVirt-Setup-$ver.exe" -Force
-          Copy-Item dist\使用说明.md "out\使用说明.md" -Force
+          # 非 ASCII 文件名在 Linux runner 上传时会被降级为 default.md, 这里改用 ASCII 名
+          Copy-Item "dist\使用说明.md" "out\USAGE-zh.md" -Force
           Get-ChildItem out | Select-Object Name, @{n='MB';e={[math]::Round($_.Length/1MB,2)}}
 
       - uses: actions/upload-artifact@v4
@@ -161,7 +162,7 @@ jobs:
             |---|---|
             | `TyporaSetup-${{ needs.build.outputs.version }}.exe` | 绿色单文件，双击即用 |
             | `TyporaVirt-Setup-${{ needs.build.outputs.version }}.exe` | 中文安装向导（开始菜单 + 卸载项） |
-            | `使用说明.md` | 操作说明 |
+            | `USAGE-zh.md` | 使用说明（中文） |
 
             ### 支持范围
 
