@@ -1,0 +1,112 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  native:
+    name: Native proxy (Rust)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: build/winmm
+
+      - name: Build winmm.dll
+        working-directory: build/winmm
+        run: cargo build --release --locked
+
+      - name: Verify export count
+        shell: pwsh
+        run: |
+          $dll = "build/winmm/target/release/winmm.dll"
+          if (-not (Test-Path $dll)) { throw "winmm.dll not built" }
+          $size = (Get-Item $dll).Length
+          Write-Host "winmm.dll = $([math]::Round($size/1KB,1)) KB"
+          if ($size -lt 100KB) { throw "winmm.dll too small, suspicious" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: winmm-dll
+          path: build/winmm/target/release/winmm.dll
+
+  gui:
+    name: GUI (C# WinForms)
+    runs-on: windows-latest
+    needs: native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: winmm-dll
+          path: build/gui
+
+      - name: Assemble resources
+        shell: pwsh
+        run: |
+          Copy-Item patches\*.js build\gui\ -Force
+          Copy-Item patches\VERSION build\gui\ -Force
+
+      - name: Compile TyporaSetup.exe
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $args = @(
+            '/nologo','/target:winexe','/codepage:65001','/optimize+',
+            '/out:build\gui\TyporaSetup.exe',
+            '/win32icon:build\gui\typora-virt.ico',
+            '/r:System.Windows.Forms.dll','/r:System.Drawing.dll',
+            '/resource:build\gui\winmm.dll,winmm.dll',
+            '/resource:build\gui\virt-loader.js,virt-loader.js',
+            '/resource:build\gui\registration.js,registration.js',
+            '/resource:build\gui\license-virtualize.js,license-virtualize.js',
+            '/resource:build\gui\jsc-patch.js,jsc-patch.js',
+            '/resource:build\gui\license-forge.js,license-forge.js',
+            '/resource:build\gui\state-hunt.js,state-hunt.js',
+            '/resource:build\gui\VERSION,VERSION',
+            'build\gui\SetupForm.cs'
+          )
+          & $csc $args
+          if ($LASTEXITCODE -ne 0) { throw "csc failed: $LASTEXITCODE" }
+          Get-Item build\gui\TyporaSetup.exe | Select-Object Name,Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TyporaSetup
+          path: build/gui/TyporaSetup.exe
+
+  check:
+    name: Syntax & hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: JS syntax check
+        run: |
+          for f in patches/*.js; do
+            echo "checking $f"
+            node --check "$f"
+          done
+
+      - name: No vendor binaries committed
+        run: |
+          if git ls-files | grep -Ei '\.(orig)$'; then
+            echo "::error::未忽略的 .orig 备份文件被提交"
+            exit 1
+          fi
+          echo "ok"

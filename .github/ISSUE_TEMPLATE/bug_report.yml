@@ -1,0 +1,68 @@
+name: Bug report
+description: 报告一个可复现的问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请确认：你是在**自己有权测试的环境**中使用本工具。
+  - type: input
+    id: typora-version
+    attributes:
+      label: Typora 版本
+      description: 打开 Typora → 帮助 → 关于，或在安装目录右键 Typora.exe → 属性 → 详细信息
+      placeholder: "1.14.10"
+    validations:
+      required: true
+  - type: input
+    id: runtime-version
+    attributes:
+      label: 运行时版本戳
+      description: "%LOCALAPPDATA%\\TyporaVirt\\virt.log 的第一行，形如 virt-runtime version=2026.10.20-r3"
+      placeholder: "2026.10.20-r3"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 系统
+      placeholder: "Windows 11 23H2 x64"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象
+      description: 发生了什么？预期是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 运行 TyporaSetup.exe
+        2. 选择 D:\Typora
+        3. 点击「一键安装并激活」
+        4. 重启 Typora → ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: |
+        可粘贴 `%LOCALAPPDATA%\TyporaVirt\virt.log`、`exports\winmm.log` 的关键片段
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我在已获授权的环境中测试
+          required: true
+        - label: 我已搜索过现有 Issues，没有重复
+          required: true

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用说明
+    url: https://github.com/Angel-Gril/Typora_Mod/blob/main/dist/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md
+    about: 先看一遍使用说明，很多问题在里面有答案
+  - name: 安全政策
+    url: https://github.com/Angel-Gril/Typora_Mod/blob/main/SECURITY.md
+    about: 涉及安全问题的报告方式
+  - name: LINUX DO 社区
+    url: https://linux.do/
+    about: 交流与讨论
