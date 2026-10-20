@@ -2,7 +2,12 @@
 ; 编译: ISCC.exe installer.iss
 
 #define MyAppName "Typora 离线注册器"
-#define MyAppVersion "1.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0"
+#endif
+#ifndef MyAppVersionFull
+  #define MyAppVersionFull "1.0.0.0"
+#endif
 #define MyAppPublisher "Seep Lab"
 #define MyAppExeName "TyporaSetup.exe"
 #define MyAppId "{{7C1E5B42-9D3A-4F87-A6E1-2B4C8D5F0A93}"
@@ -26,14 +31,14 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 ShowLanguageDialog=no
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion={#MyAppVersionFull}
 VersionInfoDescription=Typora 离线注册器 安装程序
 VersionInfoProductName=Typora 离线注册器
 VersionInfoCompany=Seep Lab
 VersionInfoCopyright=Seep Lab
 
 [Languages]
-Name: "zh"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "zh"; MessagesFile: "ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务："; Flags: unchecked
