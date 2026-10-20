@@ -1,0 +1,30 @@
+# ---- 二进制/大型产物（不入库）----
+samples/
+exports/
+*.orig
+*.exe
+!dist/*.exe
+patches/Typora.exe.orig
+patches/*.log
+patches/nag-snippet.txt
+patches/rsa-probe.log
+patches/license-forge.log
+patches/state-hunt.log
+
+# Rust 构建产物
+build/**/target/
+
+# 第三方工具二进制
+tools/innoextract/
+
+# 运行时/临时
+*.tmp
+*.bak
+.vs/
+node_modules/
+
+# 系统
+Thumbs.db
+desktop.ini
+
+tools/innoextract.zip

@@ -1,0 +1,16 @@
+[package]
+name = "winmm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "winmm"
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+
+[dependencies]
+serde_json = "1.0.154"
